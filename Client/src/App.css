@@ -1,0 +1,19 @@
+@import "tailwindcss";
+/* Works in most browsers */
+body {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE 10+ */
+  overflow-y: scroll;           /* Keep scroll functionality */
+}
+
+body::-webkit-scrollbar {
+  display: none;                /* Chrome, Safari, Opera */
+}
+/* tailwind.css or globals.css */
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hidden {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}

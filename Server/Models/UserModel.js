@@ -24,7 +24,7 @@ const UserSchema = new Schema(
     },
     RefreshToken: {
       type: String,
-      required: true,
+      required: false,
     },
     friends: [
       {

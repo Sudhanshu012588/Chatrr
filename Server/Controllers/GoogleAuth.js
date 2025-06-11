@@ -55,8 +55,9 @@ export const googleSignIn = async (req,res)=>{
             status: "success",
             message: "User created successfully",
             user: newuser,
-            token: await jwt.sign({
-                id:newuser._id
+            token: await  jwt.sign(
+                {id:newuser._id},process.env.SECRET_KEY, {
+                expiresIn: "7d"
             })
         });
     }catch(error){

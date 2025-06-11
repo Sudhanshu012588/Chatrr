@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 function Top() {
   const [friends, setFriends] = useState([]);
   const [showRequestPanel, setShowRequestPanel] = useState(false);
-
+  const [newFriends,setNewFriends] = useState([]);
   const getUsers = async () => {
   try {
     const response = await axios.get(`${import.meta.env.VITE_BACKEND_BASE_URL}/user/getUser`, {
@@ -22,6 +22,7 @@ function Top() {
 };
 
   const sendFriendRequest = async (id) => {
+    console.log("Sending friend request to:", id);
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_BASE_URL}/user/friendreq`,{

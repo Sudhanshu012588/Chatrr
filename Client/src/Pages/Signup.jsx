@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import axios from "axios"
 import toast from "react-hot-toast"
+import { GoogleLogin } from '@react-oauth/google';
 function Signup() {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -72,6 +73,28 @@ setUser((prev) => ({
 }));
     console.log("Uploaded Image URL:", data.secure_url);
   };
+
+
+
+  const handleGoogleSuccess =async(response) => {
+    const credentialresposne = response.credential;
+    console.log("Google Response:", credentialresposne);
+
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_BASE_URL}/user/google/signin`,{GoogleToken:credentialresposne})
+      console.log("Google Sign In Response:", res.data);
+      if (res.data.status === "success") {
+        localStorage.setItem("AccessToken", res.data.token);
+        toast.success("Google Sign In Successful");
+      }
+      navigator('/dashboard');
+    } catch (error) {
+      toast.error("Google Sign In Failed", error);
+      console.error("Google Sign In Error:", error); 
+    }
+
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-white flex items-center justify-center px-4 py-16">
@@ -308,6 +331,10 @@ setUser((prev) => ({
             Sign Up
           </button>
         </form>
+            <div className="mt-2 flex items-center justify-center text-gray-600 text-sm">
+
+            <GoogleLogin width={20} onSuccess={(res)=>handleGoogleSuccess(res)}/>
+            </div>
       </div>
     </div>
   );

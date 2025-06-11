@@ -5,6 +5,7 @@ import './App.css'
 import { BrowserRouter, Routes, Route, Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ChattPage from "./Pages/ChattPage";
+import Dashboard from "./Pages/Dashboard";
 function App() {
 
   return (
@@ -41,6 +42,7 @@ function App() {
           <Route path="/signup" element={<Signup/>}/>
           <Route path="/Login" element={<Login/>}/>
           <Route path="/dashboard" element={<ChattPage/>}/>
+          <Route path="/dashboard/admin" element={<Dashboard/>}/>
         </Routes>
       </BrowserRouter>
     </>

@@ -7,12 +7,9 @@ export const verify = async (req, res, next) => {
 
     if (!token) {
         console.error("Access token missing");
-      return res.status(401).json({
-        status: "failed",
-        message: "Access token missing",
-      });
+        next();
     }
-
+    console.log("Middleware called again")
     const decodedToken = jwt.verify(token, process.env.SECRET_KEY);
 
     if (!decodedToken?.id) {

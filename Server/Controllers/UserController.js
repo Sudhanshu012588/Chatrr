@@ -67,16 +67,54 @@ export const register = async (req, res) => {
 
 // ✅ Login Controller
 export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  //////console.log("Login/Verify request received:", req.body);
 
-    if (!email || !password) {
-      return res.status(400).json({
+  const { email, password, token } = req.body;
+
+  // Case 1: Token is provided → verify only
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+
+      if (!decoded?.id) {
+        return res.status(401).json({
+          status: "failed",
+          message: "Invalid token payload",
+        });
+      }
+
+      const user = await UserModel.findById(decoded.id).select("-password -RefreshToken");
+
+      if (!user) {
+        return res.status(404).json({
+          status: "failed",
+          message: "User not found",
+        });
+      }
+
+      return res.status(200).json({
+        status: "verified",
+        message: "Token verified",
+        User: user,
+      });
+    } catch (error) {
+      console.error("JWT Verify Error:", error);
+      return res.status(401).json({
         status: "failed",
-        message: "Please provide email and password",
+        message: "Invalid or expired token",
       });
     }
+  }
 
+  // Case 2: Email & Password → normal login
+  if (!email || !password) {
+    return res.status(400).json({
+      status: "failed",
+      message: "Please provide email and password",
+    });
+  }
+
+  try {
     const user = await UserModel.findOne({ email });
 
     if (!user) {
@@ -115,7 +153,6 @@ export const login = async (req, res) => {
       RefreshToken,
       User: safeUser,
     });
-
   } catch (error) {
     console.error("Login Error:", error);
     return res.status(500).json({
@@ -127,6 +164,7 @@ export const login = async (req, res) => {
 
 // ✅ Refresh Token Verification
 export const verifyRefreshtoken = async (req, res) => {
+ 
   try {
     const { RefreshToken } = req.body;
 
@@ -159,7 +197,7 @@ export const verifyRefreshtoken = async (req, res) => {
     const newRefreshToken = generateToken(user._id, "7d");
 
     await UserModel.findByIdAndUpdate(user._id, { RefreshToken: newRefreshToken });
-    console.log("New Access Token:", newAccessToken);
+    ////////console.log("New Access Token:", newAccessToken);
     return res.status(200).json({
       status: "authorized",
       message: "Token refreshed",
@@ -181,7 +219,7 @@ export const verifyRefreshtoken = async (req, res) => {
 
 export const getUser = async (req, res) => {
   const accessToken = req.headers.accesstoken;
-  console.log("Access Token:", accessToken);
+  ////////console.log("Access Token:", accessToken);
 
   if (!accessToken) {
     return res.status(401).json({
@@ -234,3 +272,58 @@ export const getUser = async (req, res) => {
     });
   }
 };
+
+
+
+export const getMyID = async (req,res)=>{
+  const {AccessToken} = req.body;
+  ////////console.log("THis route is called",AccessToken);
+  if (!AccessToken) {
+    return res.status(401).json({
+      status: "unauthorized",
+      message: "Access Token is required",
+    });
+  }
+  try {
+    const decodedToken = jwt.verify(AccessToken, process.env.SECRET_KEY);
+    const userId = decodedToken.id;
+    ////////console.log("Decoded User ID:", userId);
+    if (!userId) {
+      return res.status(401).json({
+        status: "unauthorized",
+        message: "Invalid Access Token",
+      });
+    }
+
+    const user = await UserModel.findById(userId).select("-password -RefreshToken");
+
+    if (!user) {
+      return res.status(404).json({
+        status: "not found",
+        message: "User not found",
+      });
+    }
+
+    let frendreq = [];
+    if(user.friendsRequest.length){
+      for(let i=0;i<user.friendsRequest.length;i++){
+        const friend = await UserModel.findById(user.friendsRequest[i]).select("-password -RefreshToken");
+        if(friend){
+          frendreq.push(friend);
+        }
+      }
+    }
+    return res.status(200).json({
+      status: "success",
+      message: "User ID fetched successfully",
+      Account:user,
+      friendRequests: frendreq
+    });
+  } catch (error) {
+    console.error("Get My ID Error:", error);
+    return res.status(500).json({
+      status: "failed",
+      message: "Something went wrong while fetching user ID",
+    });
+  }
+}

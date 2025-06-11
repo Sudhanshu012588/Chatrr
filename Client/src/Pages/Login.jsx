@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import LoadingPage from '../components/LoadingPage';
 import useStore from '../Store/Store';
-
+import { toast } from 'react-hot-toast';
+import { GoogleLogin } from '@react-oauth/google';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,6 +52,7 @@ function Login() {
     const AccessToken = localStorage.getItem('AccessToken');
     if (!AccessToken) {
       RefreshTokenVerification()
+      setIsVerifying(false);
       return;
     }
 
@@ -75,6 +77,9 @@ function Login() {
       const refreshSuccess = await RefreshTokenVerification();
       if (refreshSuccess) {
         navigate('/dashboard');
+      }
+      else{
+        setIsVerifying(false);
       }
     } finally {
       setIsVerifying(false);
@@ -124,6 +129,26 @@ function Login() {
       setIsSubmitting(false);
     }
   };
+
+  const handleGoogleSuccess =async(response) => {
+    const credentialresposne = response.credential;
+    console.log("Google Response:", credentialresposne);
+
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_BASE_URL}/user/google/signin`,{GoogleToken:credentialresposne})
+      console.log("Google Sign In Response:", res.data);
+      if (res.data.status === "success") {
+        localStorage.setItem("AccessToken", res.data.token);
+        toast.success("Google Sign In Successful");
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      toast.error("Google Sign In Failed", error);
+      console.error("Google Sign In Error:", error); 
+    }
+
+  }
 
   if (isVerifying) return <LoadingPage />;
 
@@ -192,6 +217,9 @@ function Login() {
             Sign up here
           </a>
         </p>
+        <div className='flex items-center justify-center mt-6'>
+          <GoogleLogin onSuccess={(res)=>handleGoogleSuccess(res)}/>
+        </div>
       </div>
     </div>
   );

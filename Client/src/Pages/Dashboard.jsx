@@ -1,188 +1,248 @@
-import React from 'react';
-import Navbar from '../components/Navbar';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import acceptFriendRequest from '../utility/AcceptReq.js';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
+import useStore from '../Store/Store.jsx';
 
 function Dashboard() {
-    const navigate = useNavigate();
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [friendRequests, setFriendRequests] = useState([]);
-    const [processingRequest, setProcessingRequest] = useState(null);
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [value, setValue] = useState("");
+  const [editing, setEditing] = useState(false);
 
-    useEffect(() => {
-        const fetchUserData = async () => {
-            const AccessToken = localStorage.getItem("AccessToken");
-            if (!AccessToken) {
-                toast.error("Please login first");
-                navigate('/Login');
-                return;
-            }
+  const profilephoto = useStore((state) => state.profilephoto);
+  const setprofilephoto = useStore((state) => state.setprofilephoto);
+  const setIsVerified = useStore((state) => state.setIsVerified);
+  const setLoggedIn = useStore((state) => state.setLoggedIn);
+  const loggedin = useStore((state) => state.loggedin);
 
-            try {
-                const response = await axios.post(
-                    `${import.meta.env.VITE_BACKEND_BASE_URL}/user/getMyID`,
-                    { AccessToken },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-                setUser(response.data.Account);
-                setFriendRequests(response.data.friendRequests || []);
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                toast.error(error.response?.data?.message || "Failed to fetch user data");
-                navigate('/Login');
-            } finally {
-                setLoading(false);
-            }
-        };
+  const handleLogout = () => {
+    localStorage.removeItem('AccessToken');
+    localStorage.removeItem('RefreshToken');
+    setprofilephoto("");
+    setIsVerified(false);
+    setLoggedIn(false);
+    toast.success("Logged out successfully");
+    navigate('/');
+  };
 
-        fetchUserData();
-    }, [navigate]);
-    
-    const AccessToken = localStorage.getItem("AccessToken");
-    const handleFriendRequest = async (accept, requestId) => {
-        setProcessingRequest(requestId);
-        const AccessToken = localStorage.getItem("AccessToken");
-        
-        try {
-            const response = await axios.post(
-                `${import.meta.env.VITE_BACKEND_BASE_URL}/user/handleFriendRequest`,
-                { 
-                    AccessToken,
-                    requestId,
-                    action: accept ? 'accept' : 'decline' 
-                }
-            );
-            
-            toast.success(accept ? "Friend request accepted!" : "Friend request declined");
-            
-            // Update the UI
-            setFriendRequests(prev => prev.filter(req => req._id !== requestId));
-            if (accept && user) {
-                setUser(prev => ({
-                    ...prev,
-                    friends: [...(prev.friends || []), response.data.newFriend]
-                }));
-            }
-        } catch (error) {
-            console.error("Error handling friend request:", error);
-            toast.error(error.response?.data?.message || "Failed to process request");
-        } finally {
-            setProcessingRequest(null);
-        }
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const AccessToken = localStorage.getItem("AccessToken");
+      if (!AccessToken) {
+        toast.error("Please login first");
+        navigate('/Login');
+        return;
+      }
+
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_BASE_URL}/user/getMyID`,
+          { AccessToken },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+        const account = response.data.Account;
+        setUser(account);
+        setprofilephoto(account.profilephoto || '');
+        setValue(account.Bio || "");
+        setFriendRequests(response.data.friendRequests || []);
+      } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to fetch user data");
+        navigate('/Login');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 pt-20 flex items-center justify-center">
-                <div className="text-2xl font-semibold text-blue-600">Loading...</div>
-            </div>
-        );
+    fetchUserData();
+  }, [navigate, setprofilephoto]);
+
+  const RefreshTokenVerification = async () => {
+    const RefreshToken = localStorage.getItem('RefreshToken');
+    if (!RefreshToken) return false;
+
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_BASE_URL}/user/verifyToken`, {
+        RefreshToken,
+      });
+
+      if (res.data.status === 'authorized') {
+        localStorage.setItem('AccessToken', res.data.AccessToken);
+        const user = res.data.User;
+        setUser(user);
+        setprofilephoto(user.profilephoto || '');
+        setLoggedIn(true);
+        return true;
+      }
+    } catch (error) {
+      console.error('Refresh token failed:', error);
+    } finally {
+      navigate('/dashboard');
+    }
+    return false;
+  };
+
+  const AccessTokenVerification = async () => {
+    const AccessToken = localStorage.getItem('AccessToken');
+    if (!AccessToken) {
+      RefreshTokenVerification();
+      return;
     }
 
-    if (!user) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 pt-20 flex items-center justify-center">
-                <div className="text-2xl font-semibold text-red-600">Failed to load user data</div>
-            </div>
-        );
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_BASE_URL}/user/login`, {
+        token: AccessToken,
+      });
+
+      if (res.data.status === 'verified') {
+        const user = res.data.User;
+        setUser(user);
+        setprofilephoto(user.profilephoto || '');
+        setLoggedIn(true);
+        navigate('/dashboard');
+      } else {
+        throw new Error('Invalid access token');
+      }
+    } catch (error) {
+      const refreshSuccess = await RefreshTokenVerification();
+      if (refreshSuccess) {
+        navigate('/dashboard');
+      }
     }
+  };
 
-    return (
-        <>
-            <Navbar />
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 pt-20 pb-10 px-4">
-                <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
-                    {/* Profile Header */}
-                    <div className="bg-gradient-to-r from-blue-500 to-green-500 p-6 text-white">
-                        <div className="flex flex-col md:flex-row items-center gap-6">
-                            <div className="h-32 w-32 rounded-full border-4 border-white overflow-hidden shadow-lg">
-                                <img 
-                                    src={user.profilephoto || "/user.png"} 
-                                    alt={user.username} 
-                                    className="h-full w-full object-cover"
-                                    onError={(e) => {
-                                        e.target.src = "/user.png";
-                                    }}
-                                />
-                            </div>
-                            <div className="text-center md:text-left">
-                                <h1 className="text-3xl font-bold">{user.username}</h1>
-                                <p className="text-blue-100 mt-1">{user.email}</p>
-                                <p className="mt-3 text-blue-50">{user.Bio || "Text me..."}</p>
-                            </div>
-                        </div>
-                    </div>
+  useEffect(() => {
+    if (!loggedin) {
+      const AccessToken = localStorage.getItem("AccessToken");
+      if (!AccessToken) {
+        navigate('/login');
+      }
+      AccessTokenVerification();
+      setLoggedIn(true)
+    }
+  }, []);
 
-                    {/* Profile Details */}
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                            <h2 className="text-xl font-semibold text-blue-800 mb-3">Account Info</h2>
-                            <div className="space-y-2">
-                                <p><span className="font-medium text-blue-700">Joined:</span> {new Date(user.createdAt).toLocaleDateString()}</p>
-                                <p><span className="font-medium text-blue-700">Last Updated:</span> {new Date(user.updatedAt).toLocaleDateString()}</p>
-                                <p><span className="font-medium text-blue-700">User ID:</span> {user._id}</p>
-                            </div>
-                        </div>
+  const updateBio = async (val) => {
+    const AccessToken = localStorage.getItem("AccessToken");
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_BASE_URL}/user/update`,
+        { AccessToken, Bio: val },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      setUser((prev) => ({ ...prev, Bio: val }));
+      setEditing(false);
+      toast.success("Bio updated");
+    } catch (error) {
+      toast.error("Error updating bio");
+    }
+  };
 
-                        <div className="bg-green-50 p-4 rounded-lg">
-                            <h2 className="text-xl font-semibold text-green-800 mb-3">Friends ({user.friends?.length || 0})</h2>
-                            {user.friends?.length > 0 ? (
-                                <ul className="space-y-2">
-                                    {user.friends.map((friend, index) => (
-                                        <li key={index} className="flex items-center gap-2">
-                                            <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                                            <span>{friend.username || friend}</span>
-                                            
-                                        </li>
-                                    ))}
-                                </ul>
-                                
-                            ) : (
-                                <p className="text-green-600">No friends yet</p>
-                            )}
-                        </div>
-                        
-                        <div>
-                            {friendRequests.length > 0 ? (
-                                friendRequests.map((req,index)=>(
-                                    <div key={index} className="bg-yellow-50 p-4 rounded-lg mb-4">
-                                        <img src={req.profilephoto} alt="profile" className='w-10 h-10 rounded-full' />
-                                        <h1 className='font-bold'>{req.username}</h1>
-                                        <h2>{req.Bio}</h2>
-                                        <button className='h-10 w-20 rounded-2xl bg-gradient-to-r from-blue-500 to-green-500 text-white font-bold'
-                                        onClick={()=>{acceptFriendRequest(AccessToken,req._id,"Confirm")
-                                            .then(() => {
-                                                toast.success("Friend request accepted!");
-                                                setFriendRequests(prev => prev.filter(r => r._id !== req._id));
-                                            })
-                                            .catch(err => {
-                                                toast.error(err.message || "Failed to accept friend request");
-                                            });
-                                        }}
-                                        >Confirm</button>
-                                    </div>
-                                ))
-                            ):(   
-                                <div className="bg-yellow-50 p-4 rounded-lg">
-                                    <h2 className="text-xl font-semibold text-yellow-800 mb-3">No Friend Requests</h2>
-                                    <p className="text-yellow-600">You have no pending friend requests.</p>
-                                </div>
-                            )}
-                        </div>
-                        
-                    </div>
+  if (loading) {
+    return <div className="text-center py-10 text-blue-600">Loading...</div>;
+  }
+
+  if (!user) {
+    return <div className="text-center py-10 text-red-600">User not found</div>;
+  }
+
+  return (
+    <div className="p-4">
+      <div className="flex items-center gap-4 mb-4">
+        <img
+          src={user.profilephoto || "/user.png"}
+          alt={user.username || "User"}
+          className="h-16 w-16 rounded-full object-cover border shadow"
+          onError={(e) => (e.currentTarget.src = "/user.png")}
+        />
+        <div>
+          <h2 className="text-lg font-bold">{user.username}</h2>
+          <p className="text-sm text-gray-600">{user.email}</p>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        {!editing ? (
+          <div className="flex justify-between items-center">
+            <p className="text-sm">{user.Bio || "No bio set"}</p>
+            <button
+              onClick={() => setEditing(true)}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Edit
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              className="border px-2 py-1 rounded w-full text-sm"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+            <button
+              onClick={() => updateBio(value)}
+              className="text-sm bg-blue-600 text-white px-2 rounded"
+            >
+              Save
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="text-md font-semibold mb-2">
+          Friend Requests ({friendRequests.length})
+        </h3>
+        {friendRequests.length > 0 ? (
+          friendRequests.map((req) => (
+            <div key={req._id} className="flex items-center justify-between mb-2 p-2 bg-yellow-50 rounded">
+              <div className="flex items-center gap-2">
+                <img
+                  src={req.profilephoto || "/user.png"}
+                  className="w-8 h-8 rounded-full"
+                  onError={(e) => (e.currentTarget.src = "/user.png")}
+                  alt={req.username || "User"}
+                />
+                <div>
+                  <p className="text-sm font-semibold">{req.username}</p>
+                  <p className="text-xs text-gray-600">{req.Bio}</p>
                 </div>
+              </div>
+              <button
+                onClick={() => {
+                  acceptFriendRequest(localStorage.getItem("AccessToken"), req._id, "Confirm")
+                    .then(() => {
+                      toast.success("Accepted");
+                      setFriendRequests((prev) => prev.filter((r) => r._id !== req._id));
+                    })
+                    .catch((err) => {
+                      toast.error(err.message || "Error");
+                    });
+                }}
+                className="bg-green-500 text-white text-xs px-2 py-1 rounded"
+              >
+                Confirm
+              </button>
             </div>
-        </>
-    );
+          ))
+        ) : (
+          <p className="text-sm text-gray-500">No pending requests</p>
+        )}
+      </div>
+
+      <div className="mt-6">
+        <button
+          className="px-6 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition duration-300 shadow-md"
+          onClick={handleLogout}
+        >
+          LogOut
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default Dashboard;

@@ -25,7 +25,7 @@ export const googleSignIn = async (req,res)=>{
 
         
         //console.log("Decoded Token:", payload.name);
-        const existinguser = await UserModel.findOne({ email: payload.email });
+        const existinguser = await UserModel.findOne({ email: payload.email }).select("-password");
         if(existinguser){
             const token = await jwt.sign(
                 {id:existinguser._id},process.env.SECRET_KEY, {

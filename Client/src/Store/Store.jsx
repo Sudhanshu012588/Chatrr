@@ -8,6 +8,9 @@ const useStore = create((set) => ({
 
         profilephoto:""
     },
+
+    isVerified: false,
+    setIsVerified: (newIsVerified)=>set({isVerified: newIsVerified}),
     setUser: (newUser) =>
     set(() => ({
       User: {
@@ -18,6 +21,20 @@ const useStore = create((set) => ({
       },
     })),
   
+
+
+    loggedin:false,
+    setLoggedIn: (newLoggedIn) => set({loggedin: newLoggedIn}),
+
+    popadmin: false,
+    setPopAdmin: (newPopAdmin) =>set({popadmin: newPopAdmin}),
+    setprofilephoto: (newProfilePhoto) =>
+    set((state) => ({
+      User: {
+        ...state.User,
+        profilephoto: newProfilePhoto,
+      },
+    })),
 }))
 
 export default useStore

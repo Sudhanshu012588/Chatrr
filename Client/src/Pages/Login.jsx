@@ -16,7 +16,8 @@ function Login() {
   const User = useStore((state) => state.User);
   const setUser = useStore((state) => state.setUser);
   const navigate = useNavigate();
-
+  const loggedin = useStore((state) => state.loggedin);
+  const setLoggedIn = useStore((state) => state.setLoggedIn);
   // Refresh Token Verification
   const RefreshTokenVerification = async () => {
     const RefreshToken = localStorage.getItem('RefreshToken');
@@ -35,6 +36,8 @@ function Login() {
           email: res.data.User.email,
           profilephoto: res.data.User.profilephoto || '',
         });
+
+        setLoggedIn(true);
         return true;
       }
     } catch (error) {
@@ -68,6 +71,7 @@ function Login() {
           email: res.data.User.email,
           profilephoto: res.data.User.profilephoto || '',
         });
+        setLoggedIn(true);
         console.log('user',User);
         navigate('/dashboard');
       } else {
@@ -112,10 +116,12 @@ function Login() {
           name: user.username,
           email: user.email,
           _id: user._id,
+          profilephoto: user.profilephoto
         });
 
         setMessage('Login successful!');
         setMessageType('success');
+        setLoggedIn(true);
         navigate('/dashboard');
       } else {
         setMessage(res.data.message || 'Login failed');
@@ -140,9 +146,18 @@ function Login() {
       console.log("Google Sign In Response:", res.data);
       if (res.data.status === "success") {
         localStorage.setItem("AccessToken", res.data.token);
+        setUser({
+          name: res.data.user.username,
+          email: res.data.user.email,
+          _id: res.data.user._id,
+          profilephoto: res.data.user.profilephoto,
+        });
+        console.log("User Data:", User);
         toast.success("Google Sign In Successful");
+        setLoggedIn(true);
         navigate('/dashboard');
       }
+
     } catch (error) {
       toast.error("Google Sign In Failed", error);
       console.error("Google Sign In Error:", error); 

@@ -5,29 +5,29 @@ import { toast } from 'react-hot-toast';
 function Top() {
   const [friends, setFriends] = useState([]);
   const [showRequestPanel, setShowRequestPanel] = useState(false);
-  const [newFriends,setNewFriends] = useState([]);
+  const [users, setUsers] = useState([]);
+
   const getUsers = async () => {
-  try {
-    const response = await axios.get(`${import.meta.env.VITE_BACKEND_BASE_URL}/user/getUser`, {
-      headers: {
-        AccessToken: localStorage.getItem("AccessToken"),
-      },
-    });
-    setFriends(response.data.users);
-    toast.success("User data fetched successfully");
-  } catch (error) {
-    toast.error("Failed to fetch user data");
-    console.error(error);
-  }
-};
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_BASE_URL}/user/getUser`, {
+        headers: {
+          AccessToken: localStorage.getItem("AccessToken"),
+        },
+      });
+      setUsers(response.data.users);
+    } catch (error) {
+      toast.error("Failed to fetch user data");
+      console.error(error);
+    }
+  };
 
   const sendFriendRequest = async (id) => {
-    console.log("Sending friend request to:", id);
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_BASE_URL}/user/friendreq`,{
-            friendID: id,
-            AccessToken: localStorage.getItem('AccessToken')
+        `${import.meta.env.VITE_BACKEND_BASE_URL}/user/friendreq`,
+        {
+          friendID: id,
+          AccessToken: localStorage.getItem('AccessToken'),
         }
       );
       toast.success(response.data.message);
@@ -43,91 +43,97 @@ function Top() {
 
   const handleOpenFriendRequestPanel = () => {
     setShowRequestPanel(true);
-    getUsers();
   };
 
   const handleCloseFriendRequestPanel = () => {
     setShowRequestPanel(false);
   };
 
-  // Friend Request Panel UI
-  if (showRequestPanel) {
-    return (
-      <div className="bg-gray-200 text-black p-4">
-        {friends.map((friend, index) => (
-          <div
-            key={index}
-            className="mb-4 flex items-center gap-4 p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-          >
-            <div className="bg-gray-100 rounded-full w-12 h-12 overflow-hidden flex items-center justify-center shadow-md">
-              <img
-                src={friend.profilephoto || '/user.png'}
-                alt="user"
-                className="w-12 h-12 object-cover rounded-full"
-              />
+  return (
+    <div className="relative">
+      {/* Top Bar */}
+      <div className="bg-blue-200 p-4 overflow-x-auto rounded-b-2xl shadow-md">
+        <div className="flex gap-6 items-center">
+          {friends.map((friend, index) => (
+            <div key={index} className="flex flex-col items-center">
+              <div className="bg-gray-100 rounded-full w-12 h-12 overflow-hidden flex items-center justify-center shadow-md">
+                <img
+                  src={friend.profilephoto || '/user.png'}
+                  alt="user"
+                  className="w-12 h-12 object-cover rounded-full"
+                />
+              </div>
+              <p className="text-black text-sm mt-1">{friend.username}</p>
+              <span
+                className={`text-xs ${
+                  friend.status === 'Online'
+                    ? 'text-green-600'
+                    : friend.status === 'Away'
+                    ? 'text-yellow-600'
+                    : 'text-gray-500'
+                }`}
+              >
+                {friend.status || 'Offline'}
+              </span>
             </div>
-            <div className="flex-1">
-              <p className="font-bold">{friend.username}</p>
-              <p className="font-medium">{friend.Bio}</p>
-              <p className="text-sm text-gray-500">{friend.status || 'Offline'}</p>
-            </div>
+          ))}
+
+          {/* Add Friend Button */}
+          <div className="ml-auto">
             <button
-              onClick={() => sendFriendRequest(friend._id)}
-              className="bg-green-400 px-4 py-2 rounded-full hover:bg-green-500 transition"
+              title="Add Friend"
+              onClick={handleOpenFriendRequestPanel}
+              className="w-24 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition duration-300"
             >
-              Be My Friend
+              <i className="fas fa-plus mr-1" /> Add
             </button>
           </div>
-        ))}
-        <button
-          onClick={handleCloseFriendRequestPanel}
-          className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 transition"
-        >
-          Back
-        </button>
-      </div>
-    );
-  }
-
-  // Default Top Bar UI
-  return (
-    <div className="bg-blue-200 p-4 overflow-x-auto relative rounded-b-2xl shadow-md">
-      <div className="flex gap-6 items-center">
-        {friends.map((friend, index) => (
-          <div key={index} className="flex flex-col items-center">
-            <div className="bg-gray-100 rounded-full w-12 h-12 overflow-hidden flex items-center justify-center shadow-md">
-              <img
-                src={friend.profilephoto || '/user.png'}
-                alt="user"
-                className="w-12 h-12 object-cover rounded-full"
-              />
-            </div>
-            <p className="text-black text-sm mt-1">{friend.username}</p>
-            <span
-              className={`text-xs ${
-                friend.status === 'Online'
-                  ? 'text-green-600'
-                  : friend.status === 'Away'
-                  ? 'text-yellow-600'
-                  : 'text-gray-500'
-              }`}
-            >
-              {friend.status || 'Offline'}
-            </span>
-          </div>
-        ))}
-
-        {/* Add Friend Button */}
-        <div className="ml-auto">
-          <button
-            title="Add Friend"
-            onClick={handleOpenFriendRequestPanel}
-            className="w-15 h-15 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition duration-300"
-          >
-            <i className="fas fa-plus" />Add
-          </button>
         </div>
       </div>
+
+      {/* Friend Request Popup */}
+      {showRequestPanel && (
+  <div className="fixed top-16 mt-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-2xl px-4">
+    <div className="bg-white p-6 rounded-xl shadow-xl max-h-[70vh] overflow-y-auto border border-gray-300">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Send Friend Requests</h2>
+        <button
+          onClick={handleCloseFriendRequestPanel}
+          className="text-gray-600 hover:text-gray-900 text-lg font-bold"
+        >
+          ✕
+        </button>
+      </div>
+
+      {users.map((friend, index) => (
+        <div
+          key={index}
+          className="mb-4 flex items-center gap-4 p-3 bg-gray-100 rounded-lg hover:shadow transition"
+        >
+          <div className="bg-gray-200 rounded-full w-12 h-12 overflow-hidden flex items-center justify-center">
+            <img
+              src={friend.profilephoto || '/user.png'}
+              alt="user"
+              className="w-12 h-12 object-cover rounded-full"
+            />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold">{friend.username}</p>
+            <p className="text-sm text-gray-600">{friend.Bio}</p>
+            <p className="text-xs text-gray-500">{friend.status || 'Offline'}</p>
+          </div>
+          <button
+            onClick={() => sendFriendRequest(friend._id)}
+            className="bg-green-500 text-white px-3 py-1 rounded-full hover:bg-green-600 transition"
+          >
+            Be My Friend
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

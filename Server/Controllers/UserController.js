@@ -327,3 +327,55 @@ export const getMyID = async (req,res)=>{
     });
   }
 }
+
+
+export const updateProfile = async (req,res)=>{
+  const data = req.body;
+  const {AccessToken} = req.body;
+  if (!AccessToken) {
+    return res.status(401).json({
+      status: "unauthorized",
+      message: "Access Token is required",
+    });
+  }
+
+  const bio = data.Bio;
+  if(bio){
+    try{
+      const decodedToken = jwt.verify(AccessToken, process.env.SECRET_KEY);
+      const userId = decodedToken.id;
+      if (!userId) {
+        return res.status(401).json({
+          status: "unauthorized",
+          message: "Invalid Access Token",
+        });
+      }
+      const user = await UserModel.findById(userId).select("-password -RefreshToken");
+      if (!user) {
+        return res.status(404).json({
+          status: "not found",
+          message: "User not found",
+        });
+      }
+      user.Bio = bio;
+      await user.save();
+      return res.status(200).json({
+        status: "success",
+        message: "Bio updated successfully",
+        User: {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          profilephoto: user.profilephoto || "",
+          Bio: user.Bio
+        }
+      });
+    }catch(error){
+      console.error("Error updating bio:", error);
+      return res.status(500).json({
+        status: "failed",
+        message: "Something went wrong while updating bio",
+      });
+    }
+  }
+}

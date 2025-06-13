@@ -35,6 +35,10 @@ const useStore = create((set) => ({
         profilephoto: newProfilePhoto,
       },
     })),
+
+
+    friendId:"",
+    setFirendId:(newid)=>set({friendId:newid})
 }))
 
 export default useStore

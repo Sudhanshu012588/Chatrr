@@ -43,6 +43,7 @@ function App() {
           <Route path="/Login" element={<Login/>}/>
           <Route path="/dashboard" element={<ChattPage/>}/>
           <Route path="/dashboard/admin" element={<Dashboard/>}/>
+          <Route path="/chat" element={<ChattPage/>}/>
         </Routes>
       </BrowserRouter>
     </>

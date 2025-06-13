@@ -4,17 +4,28 @@ import Top from '../ChattComp/Top';
 import useStore from '../Store/Store';
 import { motion, AnimatePresence } from 'framer-motion';
 import Dashboard from './Dashboard';
-
+import Bottom from '../ChattComp/Bottom';
+import { useEffect } from 'react';
 function ChattPage() {
   const pop = useStore((state) => state.popadmin);
+  const friendId = useStore((state)=>state.friendId)
+  const userId = useStore((state)=>state.User._id)
 
+  useEffect(() => {
+    console.log(friendId)
+  }, [])
+  
   return (
     <>
       <Navbar />
       <Top />
+    {friendId &&
+      (
+        <Bottom SenderID={userId} ReciverId={friendId} />
 
-      <h1 className="text-xl m-6 font-semibold">hey we are fine</h1>
-
+      )
+    }
+    
       <AnimatePresence>
         {pop && (
           <motion.div

@@ -18,6 +18,8 @@ function Dashboard() {
   const setIsVerified = useStore((state) => state.setIsVerified);
   const setLoggedIn = useStore((state) => state.setLoggedIn);
   const loggedin = useStore((state) => state.loggedin);
+  const setPopAdmin = useStore((state) => state.setPopAdmin);
+  const pop = useStore((state) => state.popadmin);
 
   const handleLogout = () => {
     localStorage.removeItem('AccessToken');
@@ -151,18 +153,29 @@ function Dashboard() {
 
   return (
     <div className="p-4">
+      <button
+                
+                className="text-gray-600 hover:text-gray-900 text-lg  font-bold right-0"
+                  onClick={()=>{setPopAdmin(!pop)}}
+                >
+                ✕
+              </button>
       <div className="flex items-center gap-4 mb-4">
+
         <img
           src={user.profilephoto || "/user.png"}
           alt={user.username || "User"}
           className="h-16 w-16 rounded-full object-cover border shadow"
           onError={(e) => (e.currentTarget.src = "/user.png")}
-        />
+          />
+        
         <div>
           <h2 className="text-lg font-bold">{user.username}</h2>
           <p className="text-sm text-gray-600">{user.email}</p>
         </div>
+        
       </div>
+      
 
       <div className="mb-4">
         {!editing ? (

@@ -102,3 +102,57 @@ export const addFriend = async(req,res)=>{
         }
     
 }
+
+
+
+//Get all friends of a user
+
+export const getFriends = async (req, res) => {
+  const { AccessToken } = req.body;
+
+  if (!AccessToken) {
+    console.log("Access Token is required");
+    return res.status(400).json({
+      status: "failed",
+      message: "Access Token is required",
+    });
+  }
+
+  try {
+    const decodedToken = jwt.verify(AccessToken, process.env.SECRET_KEY);
+
+    if (!decodedToken?.id) {
+      return res.status(401).json({
+        status: "unauthorized",
+        message: "Invalid or expired Access Token",
+      });
+    }
+
+    const userId = decodedToken.id;
+    const user = await UserModel.findById(userId).select("-password -RefreshToken");
+
+    if (!user) {
+      return res.status(404).json({
+        status: "not found",
+        message: "User not found",
+      });
+    }
+
+    const friends = await UserModel.find({
+      _id: { $in: user.friends }
+    }).select("-password -RefreshToken -friends -friendsRequest -createdAt -updatedAt");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Friends fetched successfully",
+      friends,
+    });
+
+  } catch (error) {
+    console.error("Error getting friends:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch friends from the backend",
+    });
+  }
+};

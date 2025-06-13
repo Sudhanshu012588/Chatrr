@@ -21,6 +21,39 @@ function Top() {
     }
   };
 
+  const getFriends = async () => {
+  const AccessToken = localStorage.getItem('AccessToken');
+  if (!AccessToken) {
+    toast.error("Access Token is required");
+    return;
+  }
+
+  try {
+    const friendsResponse = await axios.post(
+      `${import.meta.env.VITE_BACKEND_BASE_URL}/user/friendslist`,
+      { AccessToken } // send in body (required by your backend)
+    );
+
+    if (
+      friendsResponse.data.status === "not found" ||
+      !friendsResponse.data.friends
+    ) {
+      throw new Error("No friends found");
+    }
+
+    setFriends(friendsResponse.data.friends);
+    toast.success("Friends fetched successfully");
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    toast.error("Can't fetch your friends");
+  }
+};
+
+useEffect(() => {
+  console.log(friends)
+}, [friends])
+
+
   const sendFriendRequest = async (id) => {
     try {
       const response = await axios.post(
@@ -39,6 +72,7 @@ function Top() {
 
   useEffect(() => {
     getUsers();
+    getFriends();
   }, []);
 
   const handleOpenFriendRequestPanel = () => {

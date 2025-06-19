@@ -216,7 +216,6 @@ export const verifyRefreshtoken = async (req, res) => {
 };
 
 
-
 export const getUser = async (req, res) => {
   const accessToken = req.headers.accesstoken;
   ////////console.log("Access Token:", accessToken);
@@ -358,6 +357,46 @@ export const updateProfile = async (req,res)=>{
         });
       }
       user.Bio = bio;
+      await user.save();
+      return res.status(200).json({
+        status: "success",
+        message: "Bio updated successfully",
+        User: {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          profilephoto: user.profilephoto || "",
+          Bio: user.Bio
+        }
+      });
+    }catch(error){
+      console.error("Error updating bio:", error);
+      return res.status(500).json({
+        status: "failed",
+        message: "Something went wrong while updating bio",
+      });
+    }
+  }
+
+  else if(data.url){
+    try{
+
+      const decodedTokenns = jwt.verify(AccessToken, process.env.SECRET_KEY);
+      const userId = decodedTokenns.id;
+      if (!userId) {
+        return res.status(401).json({
+          status: "unauthorized",
+          message: "Invalid Access Token",
+        });
+      }
+      const user = await UserModel.findById(userId).select("-password -RefreshToken");
+      if (!user) {
+        return res.status(404).json({
+          status: "not found",
+          message: "User not found",
+        });
+      }
+      user.profilephoto=data.url;
       await user.save();
       return res.status(200).json({
         status: "success",

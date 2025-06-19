@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import acceptFriendRequest from '../utility/AcceptReq.js';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
+import {Camera} from 'lucide-react'
 import useStore from '../Store/Store.jsx';
-
+import {useRef} from "react"
 function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -30,6 +31,13 @@ function Dashboard() {
     toast.success("Logged out successfully");
     navigate('/');
   };
+
+    const fileInputRef = useRef(null);
+
+  const handleClick = () => {
+    fileInputRef.current?.click(); // Trigger hidden input
+  };
+
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -151,6 +159,40 @@ function Dashboard() {
     return <div className="text-center py-10 text-red-600">User not found</div>;
   }
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "preset"); // Change this
+    formData.append("folder", "public"); // Optional
+
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dzczys4gk/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await res.json();
+setUser((prev) => ({
+  ...prev,
+  profilepicture: data.secure_url,
+}));
+
+
+  const updateuserres = await axios.post(`${import.meta.env.VITE_BACKEND_BASE_URL}/user/update`,{
+    url:data.secure_url,
+    AccessToken:localStorage.getItem("AccessToken")
+  })
+
+  setprofilephoto(data.secure_url);
+  toast.success("profile photo updated")
+    // console.log("Uploaded Image URL:", data.secure_url);
+  };
+
   return (
     <div className="p-4">
       <button
@@ -161,13 +203,34 @@ function Dashboard() {
                 ✕
               </button>
       <div className="flex items-center gap-4 mb-4">
+        <div className="relative w-16 h-16">
+      <img
+        src={user.profilephoto || "/user.png"}
+        alt={user.username || "User"}
+        className="h-16 w-16 rounded-full object-cover border shadow"
+        onError={(e) => (e.currentTarget.src = "/user.png")}
+      />
 
-        <img
-          src={user.profilephoto || "/user.png"}
-          alt={user.username || "User"}
-          className="h-16 w-16 rounded-full object-cover border shadow"
-          onError={(e) => (e.currentTarget.src = "/user.png")}
-          />
+      {/* Hidden file input */}
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={(e) => {
+          handleImageUpload(e)
+        }}
+      />
+
+      {/* Camera button triggers input */}
+      <button
+        onClick={handleClick}
+        className="absolute bottom-0 right-0 w-6 h-6 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-800 text-white shadow"
+        title="Change Photo"
+      >
+        <Camera className="w-4 h-4" />
+      </button>
+    </div>
         
         <div>
           <h2 className="text-lg font-bold">{user.username}</h2>

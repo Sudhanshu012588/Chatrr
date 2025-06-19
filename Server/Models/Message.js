@@ -16,9 +16,12 @@ const messageSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  image:{
+    type: String,
+  },
   message: {
     type: String,
-    required: true,
+    // required: true,
   },
   timestamp: {
     type: Date,

@@ -5,78 +5,94 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
+
 import connectDB from "./DB/DBconfig.js";
 import userRouter from "./Routes/UserRoutes.js";
 import Message from "./Models/Message.js";
 
-const app = express();
+// Load environment variables
 dotenv.config({ path: './.env' });
 
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CORS_ORIGIN,
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// Attach io instance to app for global access
+app.set("io", io);
+
+// Database connection
+connectDB();
+
+// Middlewares
 app.use(cors({
   origin: process.env.CORS_ORIGIN,
-  credentials: true
+  credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const PORT = process.env.PORT || 8000;
-connectDB();
+// Routes
+app.use('/user', userRouter);
 
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CORS_ORIGIN,
-    methods: ["GET", "POST"]
-  }
-});
-
-app.set("io", io);
-
-// 🔌 Socket.io connection
+// Socket.IO handling
 io.on('connection', (socket) => {
-  //console.log(`🟢 User connected: ${socket.id}`);
+  // console.log(`🟢 Connected: ${socket.id}`);
 
-  // ✅ Fetch chat history
+  // Fetch previous chat messages
   socket.on('get_messages', async ({ user1, user2 }) => {
     if (!mongoose.Types.ObjectId.isValid(user1) || !mongoose.Types.ObjectId.isValid(user2)) {
       return socket.emit('messages_history', []);
     }
 
-    const messages = await Message.find({
-      $or: [
-        { sender: user1, receiver: user2 },
-        { sender: user2, receiver: user1 }
-      ]
-    }).sort({ timestamp: 1 }).lean();
-    //console.log(messages)
-    socket.emit('messages_history', messages);
+    try {
+      const messages = await Message.find({
+        $or: [
+          { sender: user1, receiver: user2 },
+          { sender: user2, receiver: user1 },
+        ],
+      }).sort({ timestamp: 1 }).lean();
+
+      socket.emit('messages_history', messages);
+    } catch (err) {
+      console.error("❌ Error fetching messages:", err.message);
+      socket.emit('messages_history', []);
+    }
   });
 
-  // ✅ Receive and forward message
+  // Handle new message
   socket.on('send_message', async (data) => {
     try {
-      const newMessage = await Message.create({
-        sender: data.SenderID,
-        receiver: data.ReciverId,
-        message: data.message,
-        timestamp: new Date()
-      });
+      if (data.message?.trim() || data.image?.trim()) {
+        const newMessage = await Message.create({
+          sender: data.SenderID,
+          receiver: data.ReciverId,
+          message: data.message || '',
+          image: data.image || '',
+          timestamp: new Date(),
+        });
 
-      // Notify both sender and receiver
-      io.emit('receive_message', newMessage);
+        // Send to all connected clients
+        io.emit('receive_message', newMessage);
+      }
     } catch (err) {
-      console.error("❌ Message error:", err.message);
+      console.error("❌ Failed to send message:", err.message);
     }
   });
 
   socket.on('disconnect', () => {
-    //console.log(`🔴 Disconnected: ${socket.id}`);
+    // console.log(`🔴 Disconnected: ${socket.id}`);
   });
 });
 
-app.use('/user', userRouter);
-
+// Start server
+const PORT = process.env.PORT || 8000;
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Server listening on port ${PORT}`);
 });

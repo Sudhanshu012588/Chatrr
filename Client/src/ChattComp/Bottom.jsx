@@ -22,7 +22,7 @@ function Bottom({ SenderID, ReciverId }) {
       ReciverId,
       image,
       message: input,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     socket.emit('send_message', newMessage);
@@ -35,7 +35,7 @@ function Bottom({ SenderID, ReciverId }) {
     if (SenderID && ReciverId) {
       socket.emit('get_messages', {
         user1: SenderID,
-        user2: ReciverId
+        user2: ReciverId,
       });
     }
 
@@ -65,13 +65,16 @@ function Bottom({ SenderID, ReciverId }) {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'preset'); // Replace with your preset
+    formData.append('upload_preset', 'preset'); // Replace with your Cloudinary preset
     formData.append('folder', 'public');
 
-    const res = await fetch('https://api.cloudinary.com/v1_1/dzczys4gk/image/upload', {
-      method: 'POST',
-      body: formData,
-    });
+    const res = await fetch(
+      'https://api.cloudinary.com/v1_1/dzczys4gk/image/upload',
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
 
     const data = await res.json();
     setImage(data.secure_url);
@@ -80,12 +83,19 @@ function Bottom({ SenderID, ReciverId }) {
 
   return (
     <div className="flex flex-col h-[75vh] bg-white rounded-xl shadow-md">
-      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
         {messages.map((msg, index) => {
           const isOwn = msg.sender === SenderID;
           return (
-            <div key={index} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xs px-4 py-2 rounded-2xl shadow-md ${isOwn ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}>
+            <div
+              key={index}
+              className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xs px-4 py-2 rounded-2xl shadow-md ${
+                  isOwn ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'
+                }`}
+              >
                 {msg.image && (
                   <img
                     src={msg.image}
@@ -107,9 +117,9 @@ function Bottom({ SenderID, ReciverId }) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t p-4 flex gap-3 items-end">
+      <div className="border-t p-3 flex flex-wrap gap-3 items-end sm:flex-nowrap">
         {/* Upload Button */}
-        <label className="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">
+        <label className="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition shrink-0">
           📷
           <input
             type="file"
@@ -121,7 +131,7 @@ function Bottom({ SenderID, ReciverId }) {
 
         {/* Image Preview */}
         {uploadComplete && image && (
-          <div className="relative w-20 h-20 rounded-md overflow-hidden border border-gray-300">
+          <div className="relative w-20 h-20 rounded-md overflow-hidden border border-gray-300 shrink-0">
             <img
               src={image}
               alt="Preview"
@@ -140,20 +150,20 @@ function Bottom({ SenderID, ReciverId }) {
           </div>
         )}
 
-        {/* Message Input */}
+        {/* Text Input */}
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Type your message..."
-          className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="flex-1 min-w-[120px] border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
 
         {/* Send Button */}
         <button
           onClick={handleSend}
-          className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition"
+          className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition shrink-0"
         >
           Send
         </button>

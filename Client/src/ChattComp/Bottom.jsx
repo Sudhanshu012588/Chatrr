@@ -100,7 +100,7 @@ function Bottom({ SenderID, ReciverId }) {
                   <img
                     src={msg.image}
                     alt="sent"
-                    className="w-40 h-auto rounded-md mb-1 object-cover"
+                    className="w-auto h-auto rounded-md mb-1 object-cover"
                   />
                 )}
                 {msg.message && <p className="text-sm">{msg.message}</p>}
